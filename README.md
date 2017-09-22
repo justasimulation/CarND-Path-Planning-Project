@@ -146,9 +146,11 @@ in case of sudden drastic increase of weights instead of finding better trajecto
 
 ## Reflections
 
-* This is a simple solution, I assume that the real solution would be much more complicated. 
+* This is a very primitive solution, but it was quite hard to implement. Probably the main
+problem except poor lectures material was debugging. In case of an intermittent error
+it could take dozens of minutes to reproduce it. 
 
-* The hardest thing is cost construction. It is quite hard to incorporate all the variables
+* Cost construction is not easy as well. It is quite hard to incorporate all the variables
 into one number.
 
 * Not clear how to use jerk minimization for this set up.
