@@ -125,7 +125,7 @@ But fore better results we probably should consider speed, which is not implemen
 
 ### Behaviour
 
-Car's behaviour is simple and driven by costs described above. 
+Car's behaviour is driven by costs described above. 
 
 * In case there is no vehicle in front of the car it goes at full speed
 * In case a vehicle is detected in front of the car it slows down
@@ -137,6 +137,11 @@ then lane change is not performed
 ### Result
 
 I was able to drive 20 miles at approximately 45 mph without an accident.
+
+Car navigates making simple decisions. Sometimes when another car unexpectedly change
+lanes and suddenly appears in front of the ego car it changes the lane which looks risky.
+May be it makes sense to introduce a dedicated state for emergency breaking and break
+in case of sudden drastic increase of weights instead of finding better trajectory.
 
 
 ## Reflections
