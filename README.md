@@ -6,7 +6,7 @@ In this project your goal is to safely navigate around a virtual highway with ot
 
 ## Implementation
 
-###States
+### States
 
 Car can be in one of three states:
 
@@ -20,7 +20,7 @@ most or right most lane where states moving it outside drivable area cannot be c
 Ideally there should be one more state of emergency breaking.
 
 
-###Finding the best next state
+### Finding the best next state
 
 Each time the simulator provides new data a number of trajectories is generated.
 Overall 9 trajectories are generated, 3 for each state.
@@ -42,7 +42,7 @@ Cost is calculated for each possible trajectory. The best trajectory and its
 corresponding state are chosen as the next state and trajectory.
 
 
-###Trajectory generation
+### Trajectory generation
 
 Result trajectory consists of 70 points which corresponds to 1.4 seconds horizon.
 20 starting points are reused and 50 points are regenerated each time which means
@@ -55,7 +55,7 @@ last points of the previous reused trajectory (usually points 19 and 20) and
 (usually 20th point + 30, 60, 90 meters). Most of the time this way of
 generation provides smooth transition.
 
-###Velocity, acceleration and jerk restrictions
+### Velocity, acceleration and jerk restrictions
 
 Velocity restrictions are supported by cost function. Better velocities have
 lower cost.
@@ -75,13 +75,13 @@ may be thanks to spline smoothing or because simulator considers only averaged v
 
 Jerk is not controlled because I never observed its violation in this implementation.
 
-###A word on jerk minimization
+### A word on jerk minimization
 
 I tried to use quintic polynomial for jerk minimization but I could not get path smooth enough
 probably because of frenet/cartesian conversion. Though in general trajectories looked great and provided
 ability to analytically find maximum/minimum accelerations.
 
-###Costs
+### Costs
 
 The following costs are calculated for each trajectory.
 
@@ -123,7 +123,7 @@ lane change to lane where vehicles are closer to the ego car than on the current
 But fore better results we probably should consider speed, which is not implemented here.
 
 
-###Behaviour
+### Behaviour
 
 Car's behaviour is simple and driven by costs described above. 
 
@@ -134,12 +134,12 @@ Car's behaviour is simple and driven by costs described above.
 * In case there vehicles in front of the car or behind the car in other lanes,
 then lane change is not performed 
 
-###Result
+### Result
 
 I was able to drive 20 miles at approximately 45 mph without an accident.
 
 
-##Reflections
+## Reflections
 
 * This is a simple solution, I assume that the real solution would be much more complicated. 
 
