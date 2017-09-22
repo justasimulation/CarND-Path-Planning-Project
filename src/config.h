@@ -10,7 +10,7 @@ namespace Config
 {
     //Number of points from the start of previous_path_x/y that will be kept unchanged
     //so the new path is previous_path_x/y[0..kKeepPointsNum] + [new points].
-    const unsigned long kKeepPointsNum              = 30;
+    const unsigned long kKeepPointsNum              = 20;
 
     //Maximum allowed accelerations (m/s).
     const double        kMaxAcceleration            = 10;
@@ -37,7 +37,7 @@ namespace Config
     const unsigned long kConnectPointsNum           = 2;
 
     //Width of the car that is used for collision detection.
-    const double        kCarWidth                   = 2.6;
+    const double        kCarWidth                   = 2.2;
 
     //Length of the car that is used for collision detection.
     const double        kCarLength                  = 10;
@@ -70,19 +70,19 @@ namespace Config
     const double        kNextCostCriticalDistance   = 2;
 
     //Cars that are s-closer than this distance to the end of trajectory contribute to next cost
-    const double        kNextCostMaxDistance        = 10;
+    const double        kNextCostMaxDistance        = 15;
 
     //Maximum cost for the car behind when it is at the position of the ego car
-    const double        kPrevMaxCost                = 2;
+    const double        kPrevMaxCost                = 4;
 
     //When car behind is closer than this previous cost will be applied
-    const double        kPrevMaxDist                = Config::kMaxVelocity * 1.;
+    const double        kPrevMaxDistance            = 15;
 
     //First lane that is used when no lane was set before
     const int           kDefaultLane                = 1;
 
     //whether to print debug output
-    const bool          kIsDebug                    = true;
+    const bool          kIsDebug                    = false;
 };
 
 

@@ -1,69 +1,157 @@
 # CarND-Path-Planning-Project
 Self-Driving Car Engineer Nanodegree Program
    
-### Simulator.
-You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases).
-
-### Goals
+## Goals
 In this project your goal is to safely navigate around a virtual highway with other traffic that is driving +-10 MPH of the 50 MPH speed limit. You will be provided the car's localization and sensor fusion data, there is also a sparse map list of waypoints around the highway. The car should try to go as close as possible to the 50 MPH speed limit, which means passing slower traffic when possible, note that other cars will try to change lanes too. The car should avoid hitting other cars at all cost as well as driving inside of the marked road lanes at all times, unless going from one lane to another. The car should be able to make one complete loop around the 6946m highway. Since the car is trying to go 50 MPH, it should take a little over 5 minutes to complete 1 loop. Also the car should not experience total acceleration over 10 m/s^2 and jerk that is greater than 50 m/s^3.
 
-#### The map of the highway is in data/highway_map.txt
-Each waypoint in the list contains  [x,y,s,dx,dy] values. x and y are the waypoint's map coordinate position, the s value is the CalcDistance along the road to get to that waypoint in meters, the dx and dy values define the unit normal vector pointing outward of the highway loop.
+## Implementation
 
-The highway's waypoints loop around so the frenet s value, CalcDistance along the road, goes from 0 to 6945.554.
+###States
 
-## Basic Build Instructions
+Car can be in one of three states:
 
-1. Clone this repo.
-2. Make a build directory: `mkdir build && cd build`
-3. Compile: `cmake .. && make`
-4. Run it: `./path_planning`.
+* Keep current lane
+* Change lane to the right
+* Change lane to the left
 
-Here is the data provided from the Simulator to the C++ Program
+In general any state can be chosen at any time except when car is in left
+most or right most lane where states moving it outside drivable area cannot be chosen.
 
-#### Main car's localization Data (No Noise)
+Ideally there should be one more state of emergency breaking.
 
-["x"] The car's x position in map coordinates
 
-["y"] The car's y position in map coordinates
+###Finding the best next state
 
-["s"] The car's s position in frenet coordinates
+Each time the simulator provides new data a number of trajectories is generated.
+Overall 9 trajectories are generated, 3 for each state.
 
-["d"] The car's d position in frenet coordinates
+So the result of each trajectory can be one of the following:
 
-["yaw"] The car's yaw angle in the map
+* staying in the current lane
+* moving to the left lane
+* moving to the right lane
 
-["speed"] The car's speed in MPH
+plus one of the following:
 
-#### Previous path data given to the Planner
+* keeping the same speed
+* increasing speed 
+* decreasing speed
 
-//Note: Return the previous list but with processed points removed, can be a nice tool to show how far along
-the path has processed since last time. 
+ 
+Cost is calculated for each possible trajectory. The best trajectory and its
+corresponding state are chosen as the next state and trajectory.
 
-["previous_path_x"] The previous list of x points previously given to the simulator
 
-["previous_path_y"] The previous list of y points previously given to the simulator
+###Trajectory generation
 
-#### Previous path's end s and d values 
+Result trajectory consists of 70 points which corresponds to 1.4 seconds horizon.
+20 starting points are reused and 50 points are regenerated each time which means
+that reaction time is 0.4 seconds. On a slow computer time span between simulator
+calls may be 0.2 seconds and more so 0.4 sounds reasonable.
 
-["end_path_s"] The previous list's last point's frenet s value
+Trajectories are generated using spline. Spline is constructed based on two
+last points of the previous reused trajectory (usually points 19 and 20) and
+3 points lying in the center of target lane far away 
+(usually 20th point + 30, 60, 90 meters). Most of the time this way of
+generation provides smooth transition.
 
-["end_path_d"] The previous list's last point's frenet d value
+###Velocity, acceleration and jerk restrictions
 
-#### Sensor Fusion Data, a list of all other car's attributes on the same side of the road. (No Noise)
+Velocity restrictions are supported by cost function. Better velocities have
+lower cost.
 
-["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, car's d position in frenet coordinates. 
+Total acceleration restriction is somewhat supported by lane construction rules. 
+Distance between adjacent points is calculated using maximum possible speed change that doesn't
+violate acceleration restriction. Having said that it is worth mentioning that
+spline and frenet/cartesian conversions bring some error and all the calculations become approximate.
+The only configuration that I observed acceleration violation in, was the case of fast target
+ lane changes in case of sudden or simultaneous lane change by other car.
+To avoid this situation I introduced suppression of fast lane changes.
 
-## Details
+Normal and tangent accelerations are not controlled for simplicity of costs
+compositions. I never observed this kind of violations in this implementation. Although theoretically
+construction of lane changing trajectory violates normal acceleration, in practice it doesn't happen,
+may be thanks to spline smoothing or because simulator considers only averaged values.
 
-1. The car uses a perfect controller and will visit every (x,y) point it recieves in the list every .02 seconds. The units for the (x,y) points are in meters and the spacing of the points determines the speed of the car. The vector going from a point to the next point in the list dictates the angle of the car. Acceleration both in the tangential and normal directions is measured along with the jerk, the rate of change of total Acceleration. The (x,y) point paths that the planner recieves should not have a total acceleration that goes over 10 m/s^2, also the jerk should not go over 50 m/s^3. (NOTE: As this is BETA, these requirements might change. Also currently jerk is over a .02 second interval, it would probably be better to average total acceleration over 1 second and measure jerk from that.
+Jerk is not controlled because I never observed its violation in this implementation.
 
-2. There will be some latency between the simulator running and the path planner returning a path, with optimized code usually its not very long maybe just 1-3 time steps. During this delay the simulator will continue using points that it was last given, because of this its a good idea to store the last points you have used so you can have a smooth transition. previous_path_x, and previous_path_y can be helpful for this transition since they show the last points given to the simulator controller with the processed points already removed. You would either return a path that extends this previous path or make sure to create a new path that has a smooth transition with this last path.
+###A word on jerk minimization
 
-## Tips
+I tried to use quintic polynomial for jerk minimization but I could not get path smooth enough
+probably because of frenet/cartesian conversion. Though in general trajectories looked great and provided
+ability to analytically find maximum/minimum accelerations.
 
-A really helpful resource for doing this project and creating smooth trajectories was using http://kluge.in-chemnitz.de/opensource/spline/, the spline function is in a single hearder file is really easy to use.
+###Costs
 
+The following costs are calculated for each trajectory.
+
+* Velocity cost
+* Distance to next car in the target lane cost
+* Distance to previous car in the target lane cost
+* Change lane cost
+
+Velocity cost is a linear piecewise function with 0.7 cost for zero velocity,
+0 for 45 mph and 1 for 50 mph. So it supports 45 mph speed.
+
+Next car cost is applied to the closest car that has s coordinate more than the ego car
+and whose s coordinate is closer than 15 meters to the end of trajectory. In other words
+it indicates that something is in front of the ego car. The value is linear,
+it starts as 0 at 15 meters ahead of the end of the trajectory and becomes 1 close to the
+end of trajectory so it could override speed cost. In case car is right in front of
+the ego car the cost may be about 4.
+
+Previous car cost is applied to the closest car in another lane that has s coordinate less than the ego car
+and whose s coordinate is less than 15 meters behind the ego car. In other words this
+cost indicates that there is something behind the ego car in another lane and prevents it
+from changing lanes. The value is linear, starts as 0 at 15 meters behind and reaches 4 when the car is right behind
+the ego car.
+
+Change lane cost has two modes. Most of the time it brings some small cost to prevent 
+random lane change. Sometimes when no other vehicles are present and only velocity cost
+is not zero, the cost is almost equal for all the lanes (here normal 
+acceleration cost could probably help) which causes random lane changes. So small 
+change lane cost should prevent random lane changes. 
+But sometimes in emergency cases, e.g. when a car appeared
+right in front of the ego car, the overall cost is large and this small weight is not enough.
+So right after lane change this cost becomes huge for 1 second to prevent fast random lane changes.
+
+In general lane change is driven by next car distance cost of the current lane
+and previous/next car distance costs of all other lanes. Velocity almost doesn't affect
+lane change because it is almost equal for all the generated trajectories. So probably
+because distance costs has approximately the same magnitude this should prevent
+lane change to lane where vehicles are closer to the ego car than on the current lane.
+But fore better results we probably should consider speed, which is not implemented here.
+
+
+###Behaviour
+
+Car's behaviour is simple and driven by costs described above. 
+
+* In case there is no vehicle in front of the car it goes at full speed
+* In case a vehicle is detected in front of the car it slows down
+* In case a vehicle is detected in front of the car it changes the lane if possible
+* Right after lane change it stays on the lane for some time.
+* In case there vehicles in front of the car or behind the car in other lanes,
+then lane change is not performed 
+
+###Result
+
+I was able to drive 20 miles at approximately 45 mph without an accident.
+
+
+##Reflections
+
+* This is a simple solution, I assume that the real solution would be much more complicated. 
+
+* The hardest thing is cost construction. It is quite hard to incorporate all the variables
+into one number.
+
+* Not clear how to use jerk minimization for this set up.
+
+* Speaking of this implementation it probably makes sense to add a dedicated state
+for emergency braking situation.
+
+---
 ---
 
 ## Dependencies
@@ -86,51 +174,10 @@ A really helpful resource for doing this project and creating smooth trajectorie
     cd uWebSockets
     git checkout e94b6e1
     ```
+    
+## Basic Build Instructions
 
-## Editor Settings
-
-We've purposefully kept editor configuration files out of this repo in order to
-keep it as simple and environment agnostic as possible. However, we recommend
-using the following settings:
-
-* indent using spaces
-* set tab width to 2 spaces (keeps the matrices in source code aligned)
-
-## Code Style
-
-Please (do your best to) stick to [Google's C++ style guide](https://google.github.io/styleguide/cppguide.html).
-
-## Project Instructions and Rubric
-
-Note: regardless of the changes you make, your project must be buildable using
-cmake and make!
-
-
-## Call for IDE Profiles Pull Requests
-
-Help your fellow students!
-
-We decided to create Makefiles with cmake to keep this project as platform
-agnostic as possible. Similarly, we omitted IDE profiles in order to ensure
-that students don't feel pressured to use one IDE or another.
-
-However! I'd love to help people get up and running with their IDEs of choice.
-If you've created a profile for an IDE that you think other students would
-appreciate, we'd love to have you add the requisite profile files and
-instructions to ide_profiles/. For example if you wanted to add a VS Code
-profile, you'd add:
-
-* /ide_profiles/vscode/.vscode
-* /ide_profiles/vscode/README.md
-
-The README should explain what the profile does, how to take advantage of it,
-and how to install it.
-
-Frankly, I've never been involved in a project with multiple IDE profiles
-before. I believe the best way to handle this would be to keep them out of the
-repo root to avoid clutter. My expectation is that most profiles will include
-instructions to copy files to a new location to get picked up by the IDE, but
-that's just a guess.
-
-One last note here: regardless of the IDE used, every submitted project must
-still be compilable with cmake and make./
+1. Clone this repo.
+2. Make a build directory: `mkdir build && cd build`
+3. Compile: `cmake .. && make`
+4. Run it: `./path_planning`.

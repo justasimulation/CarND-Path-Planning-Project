@@ -127,8 +127,8 @@ vector<double> Utils::Convert2Frenet(double x, double y, const Map &map)
     int closest_wp = GetClosestWaypoint(x, y, map.x_, map.y_);
 
     //find surrounding waypoints
-    int prev_wp = closest_wp - 1 % points_num;
-    int next_wp = closest_wp + 1 % points_num;
+    int prev_wp = closest_wp == 0 ? points_num - 1 : closest_wp - 1;
+    int next_wp = (closest_wp + 1) % points_num;
 
     // find cross points of each line prev->cur, cur->next and lines perpendicular to them and passing through x, y
     // also find out whether cross points line inside prev->cur, cur->next
@@ -150,7 +150,7 @@ vector<double> Utils::Convert2Frenet(double x, double y, const Map &map)
         if(d < min_dist)
         {
             min_dist = d;
-            double s_seg = map.s_[closest_wp] - map.s_[prev_wp];
+            double s_seg = closest_wp == 0 ? map.max_s_ - map.s_[prev_wp] : map.s_[closest_wp] - map.s_[prev_wp];
             double dist_seg = CalcDistance(map.x_[closest_wp], map.y_[closest_wp], map.x_[prev_wp], map.y_[prev_wp]);
             double dist_cross = CalcDistance(map.x_[prev_wp], map.y_[prev_wp], cross_x0, cross_y0);
 
@@ -165,7 +165,7 @@ vector<double> Utils::Convert2Frenet(double x, double y, const Map &map)
         if(d < min_dist)
         {
             min_dist = d;
-            double s_seg = map.s_[next_wp] - map.s_[closest_wp];
+            double s_seg = next_wp == 0 ? map.max_s_ - map.s_[closest_wp] :  map.s_[next_wp] - map.s_[closest_wp];
             double dist_seg = CalcDistance(map.x_[closest_wp], map.y_[closest_wp], map.x_[next_wp], map.y_[next_wp]);
             double dist_cross = CalcDistance(map.x_[closest_wp], map.y_[closest_wp], cross_x1, cross_y1);
 
@@ -314,7 +314,7 @@ Map Utils::LoadMap()
 
     //interpolate points using configurable segment length
     double cur_s = 0;
-    while(cur_s < map.max_s_)
+    while(cur_s <= map.max_s_)
     {
         map.s_.push_back(cur_s);
         map.x_.push_back(x_spline(cur_s));
@@ -323,10 +323,6 @@ Map Utils::LoadMap()
         cur_s += Config::kMapSegmentStep;
     }
 
-    //add last point
-    map.s_.push_back(map.max_s_);
-    map.x_.push_back(map.x_[0]);
-    map.y_.push_back(map.y_[0]);
 
     return map;
 }

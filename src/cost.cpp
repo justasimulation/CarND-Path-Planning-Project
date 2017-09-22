@@ -16,7 +16,7 @@ double Cost::CalcCost(Trajectory &trajectory,
     //names for debug output
     vector<string> names            = {"velocity", "forward", "backward", "lane_change"};
     //weights for each type of cost
-    vector<double> weights          = {1, 1, 1, 0.005};
+    vector<double> weights          = {1, 1, 1, 0.008};
 
     vector<double> costs            = {0, 0, 0, 0};
     vector<double> weighted_costs   = {0, 0, 0, 0};
@@ -131,7 +131,10 @@ double Cost::CalcNextDistanceCost(Trajectory &trajectory, Predictor &predictor, 
                 if(dist <= Config::kNextCostMaxDistance)
                 {
                     double cost = a * dist + b;
-                    max_cost = cost > max_cost ? cost : max_cost;
+                    if(cost > max_cost)
+                    {
+                        max_cost = cost;
+                    }
                 }
             }
         }
@@ -156,7 +159,7 @@ double Cost::CalcPrevDistanceCost(Trajectory &trajectory, Predictor &predictor, 
         //calc coefficients so cost linearly increases from 0 at KPrevCostTimeHorizon seconds of max velocity behind the ego car
         //and reaches kPrevMaxCost at the ego car location
         double b =  Config::kPrevMaxCost;
-        double a = -b / Config::kPrevMaxDist;
+        double a = -b / Config::kPrevMaxDistance;
 
         //check every prediction
         for(uint i = 0; i < predictor.GetPredictionsNum(); i++ )
@@ -167,7 +170,7 @@ double Cost::CalcPrevDistanceCost(Trajectory &trajectory, Predictor &predictor, 
             if(fabs(car.d_[0] - target_lane_center_d) < ((Config::kCarWidth / 2) +  (Config::kLaneWidth / 2)))
             {
                 double dist = -map.CalcSDistance(start_point.s_, car.s_[0]);
-                if(dist >= 0 && dist <= Config::kPrevMaxDist) //consider only cars that are behind the ego and closer than kPrevTimeHorizon seconds away
+                if(dist >= 0 && dist <= Config::kPrevMaxDistance) //consider only cars that are behind the ego and closer than kPrevTimeHorizon seconds away
                 {
                     double cost = a * dist + b;
                     max_cost = cost > max_cost ? cost : max_cost;
